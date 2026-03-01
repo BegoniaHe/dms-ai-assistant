@@ -31,10 +31,18 @@ function markdownToHtml(text, colors) {
         blockquoteBorder: "#808080"
     };
 
+    // Placeholders for code blocks so renderer.list() can hoist them outside
+    // <li> elements, preventing Qt's list-item indentation from affecting them.
+    var codePH  = {};
+    var codeIdx = 0;
+    var PH_PRE  = '\x02C';    // STX + 'C' – safe control-char prefix
+    var PH_SUF  = '\x03';     // ETX – safe control-char suffix
+    var LI_SEP  = '\x02LI\x03'; // boundary marker injected by renderer.listitem
+
     var renderer = new _md.Renderer();
 
-    // Fenced code block: Qt table with language label + copy button.
-    // In v1, `code` is raw text (unescaped) when escaped===false (our case).
+    // Fenced code block: store HTML behind a placeholder.
+    // Resolved after _md.parse() so renderer.list() can lift it out of <li>.
     renderer.code = function(code, lang) {
         lang = (lang || "").trim();
         var escaped = code
@@ -42,7 +50,7 @@ function markdownToHtml(text, colors) {
             .replace(/</g,  "&lt;")
             .replace(/>/g,  "&gt;");
         var b64 = Qt.btoa(code);
-        return (
+        var html = (
             '<table width="100%" border="0" cellspacing="0" cellpadding="0"' +
             ' style="background-color: ' + c.codeBg + '; margin: 8px 0; table-layout: fixed;">' +
                 '<tr><td style="padding: 4px 10px 0 10px;">' +
@@ -59,6 +67,9 @@ function markdownToHtml(text, colors) {
                 '</td></tr>' +
             '</table>'
         );
+        var id = PH_PRE + (codeIdx++) + PH_SUF;
+        codePH[id] = html;
+        return id;
     };
 
     // Inline code – v1 passes already-escaped code text.
@@ -95,5 +106,82 @@ function markdownToHtml(text, colors) {
         return '<hr style="margin: 12px 0;"/>';
     };
 
-    return _md.parse(text, { renderer: renderer });
+    // Stamp a boundary marker before each <li> so renderer.list() can split
+    // the concatenated body into individual items without confusion from nested lists.
+    renderer.listitem = function(body) {
+        return LI_SEP + '<li>' + body + '</li>\n';
+    };
+
+    // Hoist code-block placeholders out of <li> elements.
+    // For ordered lists, uses <ol start="N"> to preserve numbering across gaps.
+    renderer.list = function(body, ordered, start) {
+        var tag   = ordered ? 'ol' : 'ul';
+        var style = ' style="margin: 8px 0;"';
+        var items = body.split(LI_SEP).filter(function(s) { return s.length > 0; });
+
+        // Fast path: no code blocks inside this list.
+        if (body.indexOf(PH_PRE) === -1) {
+            var sa = (ordered && start !== 1) ? ' start="' + start + '"' : '';
+            return '<' + tag + sa + style + '>\n' + items.join('') + '</' + tag + '>\n';
+        }
+
+        var out     = '';
+        var counter = start || 1;
+        var seg     = [];
+
+        function flush() {
+            if (seg.length === 0) return;
+            var sa = ordered ? ' start="' + counter + '"' : '';
+            out += '<' + tag + sa + style + '>\n' + seg.join('') + '</' + tag + '>\n';
+            if (ordered) counter += seg.length;
+            seg = [];
+        }
+
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (item.indexOf(PH_PRE) === -1) {
+                seg.push(item);
+                continue;
+            }
+
+            // Strip the <li>…</li> wrapper to access inner content.
+            var content = item.replace(/^<li>/, '').replace(/<\/li>\n?$/, '');
+
+            // Split at placeholder boundaries, keeping the delimiters.
+            var parts = content.split(/(\x02C\d+\x03)/);
+            // parts: [textBefore, ph, textBetween, ph, …, textAfter]
+
+            // Text before the first code block stays in this <li>.
+            seg.push('<li>' + (parts[0] || '') + '</li>\n');
+            flush();
+
+            for (var j = 1; j < parts.length; j++) {
+                var part = parts[j];
+                if (/^\x02C\d+\x03$/.test(part)) {
+                    out += part + '\n'; // code block lives outside any <li>
+                } else {
+                    var txt = part.trim();
+                    if (txt) {
+                        // Continuation text after a code block gets its own <li>.
+                        seg.push('<li>' + txt + '</li>\n');
+                        flush();
+                    }
+                }
+            }
+        }
+
+        flush();
+        return out;
+    };
+
+    var result = _md.parse(text, { renderer: renderer });
+
+    // Resolve any code-block placeholders not inside a list (top-level blocks).
+    for (var id in codePH) {
+        if (codePH.hasOwnProperty(id)) {
+            result = result.split(id).join(codePH[id]);
+        }
+    }
+
+    return result;
 }
