@@ -1,0 +1,5 @@
+node_modules/
+markdown2html.js
+markdown2html.mjs
+# QML-specific JS pragma (.pragma library) is not valid standard JS
+AIApiAdapters.js

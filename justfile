@@ -8,9 +8,14 @@ repo_root   := justfile_directory()
 default:
     @just --list
 
-# Run qmllint on all QML files (or specific files)
+# Run qmllint on all QML files (or specific files), then Prettier check on JS
 lint *files:
     {{repo_root}}/scripts/lint.sh {{files}}
+    npm run lint:prettier --prefix {{repo_root}}
+
+# Auto-format JS/JSON/Markdown files with Prettier
+format:
+    npm run format:prettier --prefix {{repo_root}}
 
 # Generate qmllint module stubs from DMS installation
 setup-lint:
