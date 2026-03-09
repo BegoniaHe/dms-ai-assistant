@@ -3,6 +3,9 @@
 .qmlcache/
 *.qmlc.d
 
+# qmllint generated module stubs (machine-local symlinks)
+.qmllint/qs/
+
 # IDE/Editor files
 .vscode/
 .idea/
