@@ -30,6 +30,18 @@ restart:
 # Install plugin and restart DMS
 deploy: install restart
 
+# Build markdown2html.js from source
+build:
+    npm run build:markdown
+
+# Watch and rebuild markdown2html.js on changes
+watch:
+    npm run watch:markdown
+
+# Clean generated files
+clean:
+    npm run clean
+
 # Run plugin
 run:
     dms ipc call plugins toggle aiAssistant

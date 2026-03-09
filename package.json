@@ -1,0 +1,21 @@
+{
+  "name": "dms-ai-assistant-build",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Build tools for DMS AI Assistant plugin",
+  "scripts": {
+    "build:markdown": "node scripts/build-markdown.js",
+    "watch:markdown": "node scripts/build-markdown.js --watch",
+    "clean": "rm -f markdown2html.js markdown2html.mjs",
+    "lint:prettier": "prettier --check \"**/*.{js,mjs,json,md}\"",
+    "format:prettier": "prettier --write \"**/*.{js,mjs,json,md}\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "markdown-it": "^14.1.1",
+    "prettier": "^3.8.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

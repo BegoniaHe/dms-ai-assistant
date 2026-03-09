@@ -24,6 +24,15 @@ dist/
 *.o
 *.so
 
+# Node.js
+node_modules/
+package-lock.json
+*.temp.js
+
+# Generated files (built from src/)
+markdown2html.js
+markdown2html.mjs
+
 # Logs
 *.log
 

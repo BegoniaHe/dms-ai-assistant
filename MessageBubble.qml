@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import qs.Common
-import "./markdown2html.js" as Markdown2Html
+import "./markdown2html.mjs" as Markdown2Html
 import qs.Widgets
 
 Item {
