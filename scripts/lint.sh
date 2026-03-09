@@ -21,7 +21,7 @@ export QML_IMPORT_PATH="$REPO_ROOT/.qmllint:/usr/lib64/qt6/qml"
 
 files=("$@")
 if [[ ${#files[@]} -eq 0 ]]; then
-    mapfile -t files < <(find "$REPO_ROOT" -maxdepth 1 -name '*.qml' -type f | sort)
+    mapfile -t files < <(find "$REPO_ROOT" -maxdepth 1 -name '*.qml' -type f ! -path "*/reference/*" | sort)
 fi
 
 exec qmllint-qt6 -E "${files[@]}"

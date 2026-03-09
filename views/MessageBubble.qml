@@ -3,18 +3,24 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import qs.Common
-import "./markdown2html.mjs" as Markdown2Html
+import "../markdown2html.mjs" as Markdown2Html
 import qs.Widgets
 
+/**
+ * MessageBubble - Individual message display component
+ */
 Item {
     id: root
+
     property string role: "assistant"
     property string messageId: ""
     property string text: ""
-    property string status: "ok" // ok|streaming|error
+    property string status: "ok"  // ok|streaming|error|cancelled
     property bool useMonospace: false
+
+    signal retryRequested(string messageId)
     signal regenerateRequested(string messageId)
-    signal copySuccess
+    signal copyRequested(string messageId)
 
     readonly property bool isUser: role === "user"
     readonly property real bubbleMaxWidth: isUser ? Math.max(240, Math.floor(width * 0.82)) : width
@@ -24,11 +30,11 @@ Item {
     readonly property color assistantBubbleBorder: Theme.outline
 
     readonly property var themeColors: ({
-            "codeBg": Theme.surfaceContainerHigh,
-            "blockquoteBg": Theme.withAlpha(Theme.surfaceContainerHighest, 0.5),
-            "blockquoteBorder": Theme.outlineVariant,
-            "inlineCodeBg": Theme.withAlpha(Theme.onSurface, 0.1)
-        })
+        "codeBg": Theme.surfaceContainerHigh,
+        "blockquoteBg": Theme.withAlpha(Theme.surfaceContainerHighest, 0.5),
+        "blockquoteBorder": Theme.outlineVariant,
+        "inlineCodeBg": Theme.withAlpha(Theme.onSurface, 0.1)
+    })
 
     readonly property bool useMarkdownRendering: !isUser && status !== "streaming"
     readonly property string renderedHtml: Markdown2Html.markdownToHtml(root.text, themeColors)
@@ -40,12 +46,12 @@ Item {
         id: bubble
         width: Math.min(root.bubbleMaxWidth, root.width)
         x: root.isUser ? (root.width - width) : 0
-        radius: Theme.cornerRadius
+        radius: 8
         color: root.isUser ? root.userBubbleFill : root.assistantBubbleFill
         border.color: root.status === "error" ? Theme.error : (root.isUser ? root.userBubbleBorder : root.assistantBubbleBorder)
         border.width: 1
 
-        implicitHeight: contentColumn.implicitHeight + Theme.spacingM * 2
+        implicitHeight: contentColumn.implicitHeight + 16
         height: implicitHeight
 
         Behavior on x {
@@ -57,33 +63,32 @@ Item {
 
         Column {
             id: contentColumn
-            x: Theme.spacingM
-            y: Theme.spacingM
-            width: parent.width - Theme.spacingM * 2
-            spacing: Theme.spacingS
+            x: 12
+            y: 12
+            width: parent.width - 24
+            spacing: 8
 
+            // Header row with role and actions
             RowLayout {
                 id: headerRow
                 width: parent.width
-                spacing: Theme.spacingXS
+                spacing: 4
 
-                // assistant: [icon][chip][spacer][regenerate][copy]
-                // user:      [spacer][chip][icon]
                 Item {
                     Layout.fillWidth: root.isUser
                 }
 
                 Rectangle {
-                    radius: Theme.cornerRadius
+                    radius: 4
                     color: root.isUser ? Theme.withAlpha(Theme.primary, 0.14) : Theme.surfaceVariant
-                    Layout.preferredHeight: Theme.fontSizeSmall * 1.6
-                    Layout.preferredWidth: headerText.implicitWidth + Theme.spacingS * 2
+                    Layout.preferredHeight: 20
+                    Layout.preferredWidth: headerText.implicitWidth + 8
 
                     StyledText {
                         id: headerText
                         anchors.centerIn: parent
-                        text: root.isUser ? I18n.tr("You") : I18n.tr("Assistant")
-                        font.pixelSize: Theme.fontSizeSmall
+                        text: root.isUser ? "You" : "Assistant"
+                        font.pixelSize: 11
                         font.weight: Font.Medium
                         color: root.isUser ? Theme.primary : Theme.surfaceVariantText
                     }
@@ -109,6 +114,7 @@ Item {
                     Layout.fillWidth: !root.isUser
                 }
 
+                // Regenerate button
                 DankActionButton {
                     visible: !root.isUser && root.status === "ok"
                     iconName: "refresh"
@@ -116,12 +122,11 @@ Item {
                     iconSize: 14
                     backgroundColor: "transparent"
                     iconColor: Theme.surfaceVariantText
-                    tooltipText: I18n.tr("Regenerate")
-                    onClicked: {
-                        root.regenerateRequested(root.messageId);
-                    }
+                    tooltipText: "Regenerate"
+                    onClicked: root.regenerateRequested(root.messageId)
                 }
 
+                // Copy button
                 DankActionButton {
                     visible: !root.isUser && root.status === "ok"
                     iconName: "content_copy"
@@ -129,36 +134,38 @@ Item {
                     iconSize: 14
                     backgroundColor: "transparent"
                     iconColor: Theme.surfaceVariantText
-                    tooltipText: I18n.tr("Copy")
+                    tooltipText: "Copy"
                     enabled: (root.text || "").trim().length > 0
                     onClicked: {
                         Quickshell.execDetached(["wl-copy", root.text]);
-                        root.copySuccess();
+                        root.copyRequested(root.messageId);
                     }
                 }
             }
 
             Item {
                 width: 1
-                height: Theme.spacingS
+                height: 4
             }
 
+            // Error indicator
             StyledText {
                 visible: root.status === "error"
-                text: I18n.tr("Error")
-                font.pixelSize: Theme.fontSizeSmall
+                text: "Error"
+                font.pixelSize: 11
                 font.weight: Font.Medium
                 color: Theme.error
                 width: parent.width
             }
 
+            // Message text
             TextArea {
                 id: messageText
                 text: root.useMarkdownRendering ? root.renderedHtml : root.text
                 textFormat: root.useMarkdownRendering ? Text.RichText : Text.PlainText
                 wrapMode: Text.Wrap
-                font.pixelSize: Theme.fontSizeMedium
-                font.family: root.useMonospace ? Theme.monoFontFamily : Theme.fontFamily
+                font.pixelSize: 13
+                font.family: root.useMonospace ? "monospace" : Theme.fontFamily
                 color: root.status === "error" ? Theme.error : Theme.surfaceText
                 width: parent.width
 
@@ -184,7 +191,7 @@ Item {
                         try {
                             const code = Qt.atob(b64);
                             Quickshell.execDetached(["wl-copy", code]);
-                            root.copySuccess();
+                            root.copyRequested(root.messageId);
                         } catch (e) {
                             console.error("[MessageBubble] Failed to copy code:", e);
                         }
@@ -194,19 +201,20 @@ Item {
                 }
             }
 
+            // Streaming indicator
             Rectangle {
                 visible: root.status === "streaming"
-                radius: Theme.cornerRadius
+                radius: 4
                 color: Theme.surfaceVariant
-                height: Theme.fontSizeSmall * 1.6
-                width: streamingText.implicitWidth + Theme.spacingS * 2
+                height: 20
+                width: streamingText.implicitWidth + 8
                 x: root.isUser ? (parent.width - width) : 0
 
                 StyledText {
                     id: streamingText
                     anchors.centerIn: parent
-                    text: I18n.tr("Streaming…")
-                    font.pixelSize: Theme.fontSizeSmall
+                    text: "Streaming…"
+                    font.pixelSize: 11
                     color: Theme.surfaceVariantText
                 }
             }

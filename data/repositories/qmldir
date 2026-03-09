@@ -1,0 +1,3 @@
+module aiAssistant.repositories
+SettingsRepository 1.0 SettingsRepository.qml
+SessionRepository 1.0 SessionRepository.qml

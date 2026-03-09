@@ -1,0 +1,3 @@
+module aiAssistant.viewmodels
+ChatViewModel 1.0 ChatViewModel.qml
+SettingsViewModel 1.0 SettingsViewModel.qml

@@ -1,0 +1,5 @@
+module aiAssistant.views
+AIAssistantView 1.0 AIAssistantView.qml
+SettingsView 1.0 SettingsView.qml
+MessageList 1.0 MessageList.qml
+MessageBubble 1.0 MessageBubble.qml

@@ -1,9 +1,10 @@
-// QML JS library (not an ES module).
-// Provider adapters for XHR streaming requests.
-// v2 uses XMLHttpRequest instead of curl for better cross-platform support.
-// Supports OpenAI-compatible, Anthropic, and Gemini streaming.
-
 .pragma library
+
+/**
+ * ProviderAdapters - Refactored provider adapters for multi-instance system
+ * Supports: openai-v1-compatible, anthropic, gemini
+ * v3 uses XMLHttpRequest for streaming (no external dependencies)
+ */
 
 function normalizeBaseUrl(url) {
     var u = (url || "").trim();
@@ -13,21 +14,23 @@ function normalizeBaseUrl(url) {
 }
 
 function openaiChatCompletionsUrl(baseUrl) {
-    // Support the common OpenAI-style host base (https://api.openai.com -> /v1/chat/completions)
-    // and versioned bases used by local servers or other providers (..../v1 or ..../v4 -> /chat/completions).
     var b = normalizeBaseUrl(baseUrl || "https://api.openai.com");
     if (/\/v\d+$/.test(b))
         return b + "/chat/completions";
     return b + "/v1/chat/completions";
 }
 
-// Send streaming XHR request
-// onChunk(text): called for each chunk of data received
-// onDone(status): called when request completes successfully
-// onError(message): called on error
-// Returns: XMLHttpRequest object (can call .abort() to cancel)
-function sendStreamRequest(provider, payload, apiKey, onChunk, onDone, onError) {
-    var req = buildRequest(provider, payload, apiKey);
+/**
+ * Send streaming XHR request
+ * providerType: "openai-v1-compatible" | "anthropic" | "gemini"
+ * onChunk(text): called for each chunk of data received
+ * onDone(status): called when request completes successfully
+ * onError(message): called on error
+ * Returns: XMLHttpRequest object (can call .abort() to cancel)
+ * Note: Timeout handling must be done by caller using Timer (Qt QML doesn't support xhr.timeout)
+ */
+function sendStreamRequest(providerType, payload, apiKey, onChunk, onDone, onError) {
+    var req = buildRequest(providerType, payload, apiKey);
     if (!req || !req.url) {
         onError("Failed to build request");
         return null;
@@ -35,9 +38,6 @@ function sendStreamRequest(provider, payload, apiKey, onChunk, onDone, onError) 
 
     var xhr = new XMLHttpRequest();
     var offset = 0;
-    var timeoutMs = (payload.timeout || 30) * 1000;
-
-    xhr.timeout = timeoutMs;
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 3) {
@@ -69,10 +69,6 @@ function sendStreamRequest(provider, payload, apiKey, onChunk, onDone, onError) 
         }
     };
 
-    xhr.ontimeout = function() {
-        onError("Request timeout after " + (timeoutMs / 1000) + "s");
-    };
-
     xhr.onerror = function() {
         onError("Network error");
     };
@@ -89,19 +85,26 @@ function sendStreamRequest(provider, payload, apiKey, onChunk, onDone, onError) 
     return xhr;
 }
 
-function buildRequest(provider, payload, apiKey) {
-    switch (provider) {
+/**
+ * Build request for specific provider type
+ */
+function buildRequest(providerType, payload, apiKey) {
+    switch (providerType) {
     case "anthropic":
         return anthropicRequest(payload, apiKey);
     case "gemini":
         return geminiRequest(payload, apiKey);
-    case "custom":
-        return customRequest(payload, apiKey);
+    case "openai-v1-compatible":
+        return openaiRequest(payload, apiKey);
     default:
+        // Fallback to OpenAI-compatible
         return openaiRequest(payload, apiKey);
     }
 }
 
+/**
+ * OpenAI v1 Compatible request (OpenAI, LocalAI, Ollama, etc.)
+ */
 function openaiRequest(payload, apiKey) {
     var url = openaiChatCompletionsUrl(payload.baseUrl || "https://api.openai.com");
     var headers = [
@@ -118,6 +121,9 @@ function openaiRequest(payload, apiKey) {
     return { url: url, headers: headers, body: JSON.stringify(body) };
 }
 
+/**
+ * Anthropic request
+ */
 function anthropicRequest(payload, apiKey) {
     var url = (payload.baseUrl || "https://api.anthropic.com") + "/v1/messages";
     var headers = [
@@ -140,6 +146,9 @@ function anthropicRequest(payload, apiKey) {
     return { url: url, headers: headers, body: JSON.stringify(body) };
 }
 
+/**
+ * Gemini request
+ */
 function geminiRequest(payload, apiKey) {
     var url = (payload.baseUrl || "https://generativelanguage.googleapis.com")
         + "/v1beta/models/" + (payload.model || "gemini-2.5-flash") + ":streamGenerateContent"
@@ -163,7 +172,113 @@ function geminiRequest(payload, apiKey) {
     return { url: url, headers: headers, body: JSON.stringify(body) };
 }
 
-function customRequest(payload, apiKey) {
-    // v1 fallback: treat as OpenAI-compatible.
-    return openaiRequest(payload, apiKey);
+/**
+ * Parse delta from provider response
+ * Returns: { type: "text" | "done", content: string }
+ */
+function parseDelta(providerType, chunk) {
+    switch (providerType) {
+    case "anthropic":
+        return parseAnthropicDelta(chunk);
+    case "gemini":
+        return parseGeminiDelta(chunk);
+    case "openai-v1-compatible":
+        return parseOpenaiDelta(chunk);
+    default:
+        return parseOpenaiDelta(chunk);
+    }
+}
+
+/**
+ * Parse OpenAI SSE delta
+ */
+function parseOpenaiDelta(chunk) {
+    var lines = chunk.split("\n");
+    var result = [];
+
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line || !line.startsWith("data: "))
+            continue;
+
+        var data = line.substring(6);
+        if (data === "[DONE]") {
+            result.push({ type: "done", content: "" });
+            continue;
+        }
+
+        try {
+            var json = JSON.parse(data);
+            if (json.choices && json.choices[0] && json.choices[0].delta) {
+                var delta = json.choices[0].delta;
+                if (delta.content) {
+                    result.push({ type: "text", content: delta.content });
+                }
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Parse Anthropic SSE delta
+ */
+function parseAnthropicDelta(chunk) {
+    var lines = chunk.split("\n");
+    var result = [];
+
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line || !line.startsWith("data: "))
+            continue;
+
+        var data = line.substring(6);
+        try {
+            var json = JSON.parse(data);
+            if (json.type === "content_block_delta" && json.delta && json.delta.type === "text_delta") {
+                result.push({ type: "text", content: json.delta.text });
+            } else if (json.type === "message_stop") {
+                result.push({ type: "done", content: "" });
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Parse Gemini SSE delta
+ */
+function parseGeminiDelta(chunk) {
+    var lines = chunk.split("\n");
+    var result = [];
+
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        if (!line || !line.startsWith("data: "))
+            continue;
+
+        var data = line.substring(6);
+        try {
+            var json = JSON.parse(data);
+            if (json.candidates && json.candidates[0] && json.candidates[0].content) {
+                var parts = json.candidates[0].content.parts;
+                if (parts && parts[0] && parts[0].text) {
+                    result.push({ type: "text", content: parts[0].text });
+                }
+            }
+            if (json.candidates && json.candidates[0] && json.candidates[0].finishReason) {
+                result.push({ type: "done", content: "" });
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
+    }
+
+    return result;
 }

@@ -1,0 +1,5 @@
+module aiAssistant.services
+ChatService 1.0 ChatService.qml
+ProviderService 1.0 ProviderService.qml
+SessionService 1.0 SessionService.qml
+StreamingService 1.0 StreamingService.qml
