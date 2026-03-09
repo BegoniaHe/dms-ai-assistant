@@ -51,17 +51,20 @@ Thank you for considering contributing to the AI Assistant plugin! This document
 ### Local Development
 
 1. Clone your fork:
+
    ```bash
    git clone https://github.com/devnullvoid/dms-ai-assistant.git
    cd dms-ai-assistant
    ```
 
 2. Create a symlink for testing:
+
    ```bash
    ln -s $(pwd) ~/.config/DankMaterialShell/plugins/AIAssistant
    ```
 
 3. Make changes and test by running DMS manually:
+
    ```bash
    QS_FORCE_STDERR_LOGGING=1 DMS_LOG_LEVEL=debug dms run
    ```
@@ -79,6 +82,7 @@ Thank you for considering contributing to the AI Assistant plugin! This document
 - Comment complex logic only (code should be self-documenting)
 
 Example:
+
 ```qml
 Item {
     id: root
@@ -102,6 +106,7 @@ Item {
 - Add JSDoc comments for exported functions
 
 Example:
+
 ```javascript
 /**
  * Formats an API request for the specified provider
@@ -110,7 +115,7 @@ Example:
  * @returns {Object} Formatted request object
  */
 function formatRequest(provider, messages) {
-    // Implementation
+  // Implementation
 }
 ```
 
@@ -127,6 +132,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore:` Maintenance tasks
 
 Examples:
+
 ```
 feat: Add support for Claude 3.5 Sonnet
 fix: Resolve API timeout handling
@@ -154,6 +160,7 @@ AIAssistant/
 ### Adding a New AI Provider
 
 1. **Update `AIApiAdapters.js`**:
+
    ```javascript
    PROVIDER_CONFIGS: {
        newProvider: {
@@ -167,6 +174,7 @@ AIAssistant/
    ```
 
 2. **Add provider to dropdown** in `AIAssistantSettings.qml`:
+
    ```qml
    DankDropdown {
        options: ["openai", "anthropic", "gemini", "custom", "newProvider"]
@@ -174,11 +182,12 @@ AIAssistant/
    ```
 
 3. **Implement formatRequest** if needed:
+
    ```javascript
-   if (provider === "newProvider") {
-       return {
-           // Custom request format
-       };
+   if (provider === 'newProvider') {
+     return {
+       // Custom request format
+     };
    }
    ```
 
@@ -189,16 +198,19 @@ AIAssistant/
 ### Adding New Settings
 
 1. **Add property to `AIAssistantSettings.qml`**:
+
    ```qml
    property bool newSetting: false
    ```
 
 2. **Add to load() function**:
+
    ```qml
    newSetting = PluginService.loadPluginData(pluginId, "newSetting", false)
    ```
 
 3. **Add UI control**:
+
    ```qml
    DankToggle {
        checked: root.newSetting
@@ -207,6 +219,7 @@ AIAssistant/
    ```
 
 4. **Use in `AIAssistantService.qml`**:
+
    ```qml
    property bool newSetting: false
 

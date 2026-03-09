@@ -15,8 +15,8 @@ An integrated AI chat assistant plugin for DankMaterialShell with support for mu
 
 ## Screenshots
 
-| Chat Interface | Settings Panel |
-|----------------|----------------|
+| Chat Interface                                             | Settings Panel                                                 |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
 | ![Chat](screenshots/AI_ASSISTANT_SCREENSHOT_CURRENT_1.png) | ![Settings](screenshots/AI_ASSISTANT_SCREENSHOT_CURRENT_5.png) |
 
 ## Requirements
@@ -24,6 +24,29 @@ An integrated AI chat assistant plugin for DankMaterialShell with support for mu
 - **DankMaterialShell**: Latest version with plugin toggle support
 - **Qt/QML**: Qt 6.x with QtQuick support (provided by Quickshell)
 - **Dependencies**: `curl` for HTTP requests, `wl-copy` for clipboard operations
+
+## Building from Source
+
+The markdown renderer (`markdown2html.mjs`) is generated from source. To build:
+
+```bash
+# Install dependencies
+npm install
+
+# Build markdown renderer
+npm run build:markdown
+# Or: just build
+
+# Watch mode (auto-rebuild on changes)
+npm run watch:markdown
+# Or: just watch
+```
+
+**Technical Details:**
+
+- Uses **markdown-it** (actively maintained, no async/await)
+- Bundled with **esbuild** targeting ES2016 (Qt V4 compatible)
+- Output: `markdown2html.mjs` (~237KB)
 
 ## Installation
 
@@ -140,15 +163,15 @@ The AI Assistant can be triggered via:
 
 2. **Keybind**: Configure in your compositor configuration
 
-  ```kdl
-  # Niri example:
-  Mod+A { spawn "dms" "ipc" "call" "plugins" "toggle" "aiAssistant"; }
-  ```
+```kdl
+# Niri example:
+Mod+A { spawn "dms" "ipc" "call" "plugins" "toggle" "aiAssistant"; }
+```
 
-  ```conf
-  # Hyprland example:
-  bind = SUPER, A, exec, dms ipc call plugins toggle aiAssistant
-  ```
+```conf
+# Hyprland example:
+bind = SUPER, A, exec, dms ipc call plugins toggle aiAssistant
+```
 
 ### Chat Interface
 
@@ -270,7 +293,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Credits
 
-- **Author**: Jon Rogers - *devnullvoid*
+- **Author**: Jon Rogers - _devnullvoid_
 - **DankMaterialShell**: [DankMaterialShell Project](https://github.com/AvengeMedia/DankMaterialShell)
 - **QML/Qt**: [Qt Project](https://www.qt.io/)
 

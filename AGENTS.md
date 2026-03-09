@@ -28,6 +28,7 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 **Pattern**: Daemon + Slideout (singleton service + per-screen UI instances)
 
 **Key Files**:
+
 - `AIAssistantDaemon.qml` - Plugin lifecycle and screen management
 - `AIAssistantService.qml` - Singleton backend service (API calls, streaming, state)
 - `AIAssistant.qml` - UI component (chat interface)
@@ -41,11 +42,13 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 ### Streaming Behavior (IMPORTANT)
 
 **curl --compressed flag issue (fixed in v1.1.1)**:
+
 - The `--compressed` flag was interfering with `StdioCollector` stdout capture
 - Removed from `AIApiAdapters.js` - only `-N` and `--no-buffer` are needed
 - Without this fix, streaming responses appear empty
 
 **Why there's no "typing effect"**:
+
 - Stream chunks ARE processed incrementally (thousands per response)
 - QML batches property updates per render frame (~60fps) for performance
 - Chunks arrive faster than UI can render individual updates
@@ -55,12 +58,14 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 ### Provider Configuration
 
 **Supported Providers**:
+
 - OpenAI (gpt-5.2 models)
 - Anthropic (claude-4.5 models)
 - Google Gemini (gemini-2.5-flash, gemini-3-flash-preview)
 - Custom (OpenAI-compatible endpoints)
 
 **Custom Provider Notes**:
+
 - Treated as OpenAI-compatible
 - Base URLs ending with `/v4` or `/v1` are handled correctly
 - Example: `https://api.z.ai/api/coding/paas/v4` → appends `/chat/completions`
@@ -71,6 +76,7 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 **IMPORTANT**: Must hardcode `pluginId: "aiAssistant"` instead of using injected `pluginService.pluginId` because PluginService injection happens after `Component.onCompleted`.
 
 **API Key Resolution Order**:
+
 1. Session key (in-memory, not persisted)
 2. Saved key (if `saveApiKey` is true)
 3. Custom env var (from `apiKeyEnvVar` setting)
@@ -80,6 +86,7 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 ## Debug Logging
 
 With `DMS_LOG_LEVEL=debug`, watch for:
+
 - `[AIAssistantService] request provider=` - Verify URL construction
 - `[AIAssistantService] request body(preview)=` - Verify message format
 - `[AIAssistantService] response finalized chars=` - Verify content capture

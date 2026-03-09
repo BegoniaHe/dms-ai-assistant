@@ -5,14 +5,8 @@
   "version": "1.4.0",
   "author": "devnullvoid",
   "type": "daemon",
-  "capabilities": [
-    "slideout",
-    "ai"
-  ],
+  "capabilities": ["slideout", "ai"],
   "component": "./AIAssistantDaemon.qml",
   "icon": "smart_toy",
-  "permissions": [
-    "settings_read",
-    "settings_write"
-  ]
+  "permissions": ["settings_read", "settings_write"]
 }
