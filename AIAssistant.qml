@@ -4,7 +4,6 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Quickshell
 import qs.Common
-import qs.Services
 import qs.Widgets
 
 Item {
@@ -146,7 +145,7 @@ Item {
             Rectangle {
                 radius: Theme.cornerRadius
                 color: Theme.surfaceVariant
-                height: Theme.fontSizeSmall * 1.6
+                Layout.preferredHeight: Theme.fontSizeSmall * 1.6
                 Layout.preferredWidth: providerLabel.implicitWidth + Theme.spacingM
                 Layout.alignment: Qt.AlignVCenter
 
@@ -160,8 +159,8 @@ Item {
             }
 
             Rectangle {
-                width: 10
-                height: 10
+                Layout.preferredWidth: 10
+                Layout.preferredHeight: 10
                 radius: 5
                 color: aiService.isOnline ? Theme.success : Theme.surfaceVariantText
                 Layout.alignment: Qt.AlignVCenter
@@ -171,7 +170,7 @@ Item {
                 visible: aiService.isStreaming
                 radius: Theme.cornerRadius
                 color: Theme.surfaceVariant
-                height: Theme.fontSizeSmall * 1.6
+                Layout.preferredHeight: Theme.fontSizeSmall * 1.6
                 Layout.preferredWidth: streamingHeaderText.implicitWidth + Theme.spacingM
                 Layout.alignment: Qt.AlignVCenter
 
@@ -188,7 +187,7 @@ Item {
                 visible: !aiService.isStreaming && transientHint.length > 0
                 radius: Theme.cornerRadius
                 color: Theme.surfaceVariant
-                height: Theme.fontSizeSmall * 1.6
+                Layout.preferredHeight: Theme.fontSizeSmall * 1.6
                 Layout.preferredWidth: transientHeaderText.implicitWidth + Theme.spacingM
                 Layout.alignment: Qt.AlignVCenter
 

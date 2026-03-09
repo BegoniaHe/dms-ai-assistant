@@ -9,7 +9,7 @@ Item {
     property var aiService: null
     property bool stickToBottom: true
     property bool useMonospace: false
-    signal copySuccess()
+    signal copySuccess
 
     Component.onCompleted: console.log("[MessageList] ready")
 
@@ -49,7 +49,7 @@ Item {
         model: root.messages
         spacing: Theme.spacingM
         clip: true
-        ScrollBar.vertical: ScrollBar { }
+        ScrollBar.vertical: ScrollBar {}
 
         onContentYChanged: {
             // Use a small tolerance to avoid stickToBottom flipping to false
@@ -73,35 +73,43 @@ Item {
 
         delegate: Item {
             id: wrapper
-            width: listView.width
+            required property int index
+            required property var model
+            // Outer-scope aliases (delegate cannot qualify outer IDs without pragma)
+            property real listWidth: listView.width // qmllint disable unqualified
+            property var outerMessages: root.messages // qmllint disable unqualified
+            property bool outerUseMonospace: root.useMonospace // qmllint disable unqualified
+            property var outerAiService: root.aiService // qmllint disable unqualified
 
-            readonly property string previousRole: (index > 0 && root.messages) ? (root.messages.get(index - 1).role || "") : ""
-            readonly property bool roleChanged: previousRole.length > 0 && previousRole !== (model.role || "")
+            width: wrapper.listWidth
+
+            readonly property string previousRole: (wrapper.index > 0 && wrapper.outerMessages) ? (wrapper.outerMessages.get(wrapper.index - 1).role || "") : ""
+            readonly property bool roleChanged: previousRole.length > 0 && previousRole !== (wrapper.model.role || "")
             readonly property int topGap: roleChanged ? Theme.spacingM : 0
 
             implicitHeight: bubble.implicitHeight + topGap
 
             MessageBubble {
                 id: bubble
-                width: listView.width
+                width: wrapper.listWidth
                 y: wrapper.topGap
-                messageId: model.id
-                role: model.role
-                text: model.content
-                status: model.status
-                useMonospace: root.useMonospace
+                messageId: wrapper.model.id
+                role: wrapper.model.role
+                text: wrapper.model.content
+                status: wrapper.model.status
+                useMonospace: wrapper.outerUseMonospace
 
-                onCopySuccess: root.copySuccess()
+                onCopySuccess: root.copySuccess() // qmllint disable unqualified
 
                 Component.onCompleted: {
-                    console.log("[MessageList] add", role, text ? text.slice(0, 40) : "")
+                    console.log("[MessageList] add", role, text ? text.slice(0, 40) : "");
                 }
 
                 onRegenerateRequested: messageId => {
-                    if (!aiService || !aiService.regenerateFromMessageId)
+                    if (!wrapper.outerAiService || !wrapper.outerAiService.regenerateFromMessageId)
                         return;
                     console.log("[MessageList] regenerate requested for message id", messageId);
-                    aiService.regenerateFromMessageId(messageId);
+                    wrapper.outerAiService.regenerateFromMessageId(messageId);
                 }
             }
         }

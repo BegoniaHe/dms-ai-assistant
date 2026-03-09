@@ -14,7 +14,7 @@ Item {
     property string status: "ok" // ok|streaming|error
     property bool useMonospace: false
     signal regenerateRequested(string messageId)
-    signal copySuccess()
+    signal copySuccess
 
     readonly property bool isUser: role === "user"
     readonly property real bubbleMaxWidth: isUser ? Math.max(240, Math.floor(width * 0.82)) : width
@@ -24,11 +24,11 @@ Item {
     readonly property color assistantBubbleBorder: Theme.outline
 
     readonly property var themeColors: ({
-        "codeBg": Theme.surfaceContainerHigh,
-        "blockquoteBg": Theme.withAlpha(Theme.surfaceContainerHighest, 0.5),
-        "blockquoteBorder": Theme.outlineVariant,
-        "inlineCodeBg": Theme.withAlpha(Theme.onSurface, 0.1)
-    })
+            "codeBg": Theme.surfaceContainerHigh,
+            "blockquoteBg": Theme.withAlpha(Theme.surfaceContainerHighest, 0.5),
+            "blockquoteBorder": Theme.outlineVariant,
+            "inlineCodeBg": Theme.withAlpha(Theme.onSurface, 0.1)
+        })
 
     readonly property bool useMarkdownRendering: !isUser && status !== "streaming"
     readonly property string renderedHtml: Markdown2Html.markdownToHtml(root.text, themeColors)
@@ -42,7 +42,7 @@ Item {
         x: root.isUser ? (root.width - width) : 0
         radius: Theme.cornerRadius
         color: root.isUser ? root.userBubbleFill : root.assistantBubbleFill
-        border.color: status === "error" ? Theme.error : (root.isUser ? root.userBubbleBorder : root.assistantBubbleBorder)
+        border.color: root.status === "error" ? Theme.error : (root.isUser ? root.userBubbleBorder : root.assistantBubbleBorder)
         border.width: 1
 
         implicitHeight: contentColumn.implicitHeight + Theme.spacingM * 2
@@ -69,7 +69,9 @@ Item {
 
                 // assistant: [icon][chip][spacer][regenerate][copy]
                 // user:      [spacer][chip][icon]
-                Item { Layout.fillWidth: root.isUser }
+                Item {
+                    Layout.fillWidth: root.isUser
+                }
 
                 Rectangle {
                     radius: Theme.cornerRadius
@@ -88,8 +90,8 @@ Item {
                 }
 
                 Rectangle {
-                    width: 18
-                    height: 18
+                    Layout.preferredWidth: 18
+                    Layout.preferredHeight: 18
                     radius: 9
                     color: root.isUser ? Theme.withAlpha(Theme.primary, 0.20) : Theme.surfaceVariant
                     border.width: 1
@@ -103,7 +105,9 @@ Item {
                     }
                 }
 
-                Item { Layout.fillWidth: !root.isUser }
+                Item {
+                    Layout.fillWidth: !root.isUser
+                }
 
                 DankActionButton {
                     visible: !root.isUser && root.status === "ok"
@@ -155,7 +159,7 @@ Item {
                 wrapMode: Text.Wrap
                 font.pixelSize: Theme.fontSizeMedium
                 font.family: root.useMonospace ? Theme.monoFontFamily : Theme.fontFamily
-                color: status === "error" ? Theme.error : Theme.surfaceText
+                color: root.status === "error" ? Theme.error : Theme.surfaceText
                 width: parent.width
 
                 readOnly: true
@@ -191,7 +195,7 @@ Item {
             }
 
             Rectangle {
-                visible: status === "streaming"
+                visible: root.status === "streaming"
                 radius: Theme.cornerRadius
                 color: Theme.surfaceVariant
                 height: Theme.fontSizeSmall * 1.6

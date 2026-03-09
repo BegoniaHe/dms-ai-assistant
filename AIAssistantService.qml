@@ -140,23 +140,23 @@ Item {
     }
 
     function syncLegacySnapshot(activeProfile) {
-        PluginService.savePluginData(pluginId, "provider", provider)
-        PluginService.savePluginData(pluginId, "baseUrl", activeProfile.baseUrl)
-        PluginService.savePluginData(pluginId, "model", activeProfile.model)
-        PluginService.savePluginData(pluginId, "apiKey", activeProfile.apiKey)
-        PluginService.savePluginData(pluginId, "saveApiKey", activeProfile.saveApiKey)
-        PluginService.savePluginData(pluginId, "apiKeyEnvVar", activeProfile.apiKeyEnvVar)
-        PluginService.savePluginData(pluginId, "temperature", activeProfile.temperature)
-        PluginService.savePluginData(pluginId, "maxTokens", activeProfile.maxTokens)
-        PluginService.savePluginData(pluginId, "timeout", activeProfile.timeout)
+        PluginService.savePluginData(pluginId, "provider", provider);
+        PluginService.savePluginData(pluginId, "baseUrl", activeProfile.baseUrl);
+        PluginService.savePluginData(pluginId, "model", activeProfile.model);
+        PluginService.savePluginData(pluginId, "apiKey", activeProfile.apiKey);
+        PluginService.savePluginData(pluginId, "saveApiKey", activeProfile.saveApiKey);
+        PluginService.savePluginData(pluginId, "apiKeyEnvVar", activeProfile.apiKeyEnvVar);
+        PluginService.savePluginData(pluginId, "temperature", activeProfile.temperature);
+        PluginService.savePluginData(pluginId, "maxTokens", activeProfile.maxTokens);
+        PluginService.savePluginData(pluginId, "timeout", activeProfile.timeout);
     }
 
     function loadSettings() {
-        suppressConfigChange = true
-        const selectedProvider = String(PluginService.loadPluginData(pluginId, "provider", "openai")).trim() || "openai"
-        const providerId = ["openai", "anthropic", "gemini", "custom"].includes(selectedProvider) ? selectedProvider : "openai"
-        const rawProviders = PluginService.loadPluginData(pluginId, "providers", null)
-        let nextProviders = mergedProviders(rawProviders)
+        suppressConfigChange = true;
+        const selectedProvider = String(PluginService.loadPluginData(pluginId, "provider", "openai")).trim() || "openai";
+        const providerId = ["openai", "anthropic", "gemini", "custom"].includes(selectedProvider) ? selectedProvider : "openai";
+        const rawProviders = PluginService.loadPluginData(pluginId, "providers", null);
+        let nextProviders = mergedProviders(rawProviders);
 
         if (!rawProviders || typeof rawProviders !== "object") {
             const legacyProfile = {
@@ -168,36 +168,37 @@ Item {
                 apiKey: String(PluginService.loadPluginData(pluginId, "apiKey", "")).trim(),
                 saveApiKey: PluginService.loadPluginData(pluginId, "saveApiKey", false),
                 apiKeyEnvVar: String(PluginService.loadPluginData(pluginId, "apiKeyEnvVar", "")).trim()
-            }
-            nextProviders[providerId] = normalizedProfile(providerId, legacyProfile)
-            PluginService.savePluginData(pluginId, "providers", nextProviders)
-            syncLegacySnapshot(nextProviders[providerId])
+            };
+            nextProviders[providerId] = normalizedProfile(providerId, legacyProfile);
+            PluginService.savePluginData(pluginId, "providers", nextProviders);
+            syncLegacySnapshot(nextProviders[providerId]);
         }
 
-        providers = nextProviders
-        provider = providerId
+        providers = nextProviders;
+        provider = providerId;
 
-        const active = providers[provider] || normalizedProfile(provider, null)
-        baseUrl = active.baseUrl
-        model = active.model
-        temperature = active.temperature
-        maxTokens = active.maxTokens
-        timeout = active.timeout
-        apiKey = active.apiKey
-        saveApiKey = active.saveApiKey
-        apiKeyEnvVar = active.apiKeyEnvVar
-        useMonospace = PluginService.loadPluginData(pluginId, "useMonospace", false)
-        suppressConfigChange = false
+        const active = providers[provider] || normalizedProfile(provider, null);
+        baseUrl = active.baseUrl;
+        model = active.model;
+        temperature = active.temperature;
+        maxTokens = active.maxTokens;
+        timeout = active.timeout;
+        apiKey = active.apiKey;
+        saveApiKey = active.saveApiKey;
+        apiKeyEnvVar = active.apiKeyEnvVar;
+        useMonospace = PluginService.loadPluginData(pluginId, "useMonospace", false);
+        suppressConfigChange = false;
 
         const currentHash = computeConfigHash();
         if (providerConfigHash !== currentHash)
-            switchConfigHistory(currentHash)
+            switchConfigHistory(currentHash);
     }
 
     Connections {
         target: PluginService
         function onPluginDataChanged(pId) {
-            if (pId !== root.pluginId) return;
+            if (pId !== root.pluginId)
+                return;
             loadSettings();
         }
     }
@@ -206,7 +207,7 @@ Item {
         id: mkdirProcess
         command: ["mkdir", "-p", root.baseDir]
         running: false
-        onExited: (code) => {
+        onExited: code => {
             if (code === 0 && !sessionLoaded) {
                 sessionFile.path = sessionPath;
             }
@@ -276,7 +277,7 @@ Item {
 
         const previousHash = providerConfigHash;
         if (previousHash && previousHash !== nextHash)
-            persistCurrentMessagesForHash(previousHash)
+            persistCurrentMessagesForHash(previousHash);
 
         providerConfigHash = nextHash;
         const nextMessages = (sessionsByConfig && Array.isArray(sessionsByConfig[nextHash])) ? sessionsByConfig[nextHash] : [];
@@ -289,7 +290,7 @@ Item {
             return;
         const current = computeConfigHash();
         if (providerConfigHash && providerConfigHash !== current) {
-            switchConfigHistory(current)
+            switchConfigHistory(current);
         } else {
             providerConfigHash = current;
             saveSession();
@@ -315,7 +316,7 @@ Item {
 
     function saveSession() {
         const currentHash = providerConfigHash || computeConfigHash();
-        persistCurrentMessagesForHash(currentHash)
+        persistCurrentMessagesForHash(currentHash);
 
         if (!sessionLoaded || !sessionFile.path)
             return;
@@ -439,11 +440,23 @@ Item {
         const streamId = "assistant-" + now;
 
         if (addUser) {
-            messagesModel.append({ role: "user", content: text, timestamp: now, id: "user-" + now, status: "ok" });
+            messagesModel.append({
+                role: "user",
+                content: text,
+                timestamp: now,
+                id: "user-" + now,
+                status: "ok"
+            });
             lastUserText = text;
         }
 
-        messagesModel.append({ role: "assistant", content: "", timestamp: now + 1, id: streamId, status: "streaming" });
+        messagesModel.append({
+            role: "assistant",
+            content: "",
+            timestamp: now + 1,
+            id: streamId,
+            status: "streaming"
+        });
         activeStreamId = streamId;
         isStreaming = true;
         streamStartedAtMs = now;
@@ -548,12 +561,18 @@ Item {
 
             if (!needUser) {
                 if (m.role === "assistant" && m.content && m.content.trim().length > 0) {
-                    msgs.unshift({ role: "assistant", content: m.content });
+                    msgs.unshift({
+                        role: "assistant",
+                        content: m.content
+                    });
                     needUser = true;
                 }
             } else {
                 if (m.role === "user" && m.content && m.content.trim().length > 0) {
-                    msgs.unshift({ role: "user", content: m.content });
+                    msgs.unshift({
+                        role: "user",
+                        content: m.content
+                    });
                     needUser = false;
                     turns++;
                     if (turns >= maxTurns)
@@ -562,7 +581,10 @@ Item {
             }
         }
 
-        msgs.push({ role: "user", content: latestText });
+        msgs.push({
+            role: "user",
+            content: latestText
+        });
         return {
             provider: provider,
             baseUrl: baseUrl,
@@ -702,9 +724,7 @@ Item {
         }
 
         if (lastHttpStatus >= 400 && isStreaming) {
-            const msg = bodyPreview
-                ? ("Request failed (HTTP " + lastHttpStatus + "): " + bodyPreview)
-                : ("Request failed (HTTP " + lastHttpStatus + ")");
+            const msg = bodyPreview ? ("Request failed (HTTP " + lastHttpStatus + "): " + bodyPreview) : ("Request failed (HTTP " + lastHttpStatus + ")");
             markError(activeStreamId, msg);
             return;
         }

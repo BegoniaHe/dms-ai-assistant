@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Common
 import qs.Widgets
@@ -30,8 +29,8 @@ Item {
     property bool useMonospace: false
 
     function save(key, value) {
-        PluginService.savePluginData(pluginId, key, value)
-        root[key] = value
+        PluginService.savePluginData(pluginId, key, value);
+        root[key] = value;
     }
 
     function defaultsForProvider(id) {
@@ -84,8 +83,8 @@ Item {
     }
 
     function normalizedProfile(id, raw) {
-        const d = defaultsForProvider(id)
-        const p = raw || {}
+        const d = defaultsForProvider(id);
+        const p = raw || {};
         return {
             baseUrl: String(p.baseUrl || d.baseUrl).trim(),
             model: String(p.model || d.model).trim(),
@@ -95,7 +94,7 @@ Item {
             temperature: (typeof p.temperature === "number") ? p.temperature : d.temperature,
             maxTokens: (typeof p.maxTokens === "number") ? p.maxTokens : d.maxTokens,
             timeout: (typeof p.timeout === "number") ? p.timeout : d.timeout
-        }
+        };
     }
 
     function mergedProviders(rawProviders) {
@@ -104,70 +103,70 @@ Item {
             anthropic: normalizedProfile("anthropic", null),
             gemini: normalizedProfile("gemini", null),
             custom: normalizedProfile("custom", null)
-        }
+        };
         if (!rawProviders || typeof rawProviders !== "object")
-            return next
+            return next;
 
-        const ids = ["openai", "anthropic", "gemini", "custom"]
+        const ids = ["openai", "anthropic", "gemini", "custom"];
         for (let i = 0; i < ids.length; i++) {
-            const id = ids[i]
+            const id = ids[i];
             if (rawProviders[id] && typeof rawProviders[id] === "object") {
-                next[id] = normalizedProfile(id, rawProviders[id])
+                next[id] = normalizedProfile(id, rawProviders[id]);
             }
         }
-        return next
+        return next;
     }
 
     function saveProviders(nextProviders) {
-        providers = nextProviders
-        PluginService.savePluginData(pluginId, "providers", nextProviders)
+        providers = nextProviders;
+        PluginService.savePluginData(pluginId, "providers", nextProviders);
     }
 
     function applyActiveProfile() {
-        const active = providers[provider] || normalizedProfile(provider, null)
-        baseUrl = active.baseUrl
-        model = active.model
-        apiKey = active.apiKey
-        saveApiKey = active.saveApiKey
-        apiKeyEnvVar = active.apiKeyEnvVar
-        temperature = active.temperature
-        maxTokens = active.maxTokens
+        const active = providers[provider] || normalizedProfile(provider, null);
+        baseUrl = active.baseUrl;
+        model = active.model;
+        apiKey = active.apiKey;
+        saveApiKey = active.saveApiKey;
+        apiKeyEnvVar = active.apiKeyEnvVar;
+        temperature = active.temperature;
+        maxTokens = active.maxTokens;
     }
 
     function setProvider(providerId) {
-        provider = providerId
-        const active = providers[provider] || normalizedProfile(provider, null)
-        applyActiveProfile()
-        save("provider", provider)
-        save("baseUrl", active.baseUrl)
-        save("model", active.model)
-        save("apiKey", active.apiKey)
-        save("saveApiKey", active.saveApiKey)
-        save("apiKeyEnvVar", active.apiKeyEnvVar)
-        save("temperature", active.temperature)
-        save("maxTokens", active.maxTokens)
+        provider = providerId;
+        const active = providers[provider] || normalizedProfile(provider, null);
+        applyActiveProfile();
+        save("provider", provider);
+        save("baseUrl", active.baseUrl);
+        save("model", active.model);
+        save("apiKey", active.apiKey);
+        save("saveApiKey", active.saveApiKey);
+        save("apiKeyEnvVar", active.apiKeyEnvVar);
+        save("temperature", active.temperature);
+        save("maxTokens", active.maxTokens);
     }
 
     function saveActiveField(key, value) {
-        root[key] = value
-        const nextProviders = Object.assign({}, providers)
-        const current = Object.assign({}, nextProviders[provider] || normalizedProfile(provider, null))
-        current[key] = value
-        nextProviders[provider] = normalizedProfile(provider, current)
-        saveProviders(nextProviders)
+        root[key] = value;
+        const nextProviders = Object.assign({}, providers);
+        const current = Object.assign({}, nextProviders[provider] || normalizedProfile(provider, null));
+        current[key] = value;
+        nextProviders[provider] = normalizedProfile(provider, current);
+        saveProviders(nextProviders);
 
         // Keep active-provider legacy keys in sync for compatibility and easier debugging.
         if (["baseUrl", "model", "apiKey", "saveApiKey", "apiKeyEnvVar", "temperature", "maxTokens"].includes(key)) {
-            save(key, nextProviders[provider][key])
+            save(key, nextProviders[provider][key]);
         }
     }
 
     function load() {
-        const selectedProvider = String(PluginService.loadPluginData(pluginId, "provider", "openai")).trim() || "openai"
-        provider = ["openai", "anthropic", "gemini", "custom"].includes(selectedProvider) ? selectedProvider : "openai"
+        const selectedProvider = String(PluginService.loadPluginData(pluginId, "provider", "openai")).trim() || "openai";
+        provider = ["openai", "anthropic", "gemini", "custom"].includes(selectedProvider) ? selectedProvider : "openai";
 
-        const rawProviders = PluginService.loadPluginData(pluginId, "providers", null)
-        let nextProviders = mergedProviders(rawProviders)
+        const rawProviders = PluginService.loadPluginData(pluginId, "providers", null);
+        let nextProviders = mergedProviders(rawProviders);
 
         if (!rawProviders || typeof rawProviders !== "object") {
             const legacyProfile = {
@@ -179,32 +178,34 @@ Item {
                 temperature: PluginService.loadPluginData(pluginId, "temperature", 0.7),
                 maxTokens: PluginService.loadPluginData(pluginId, "maxTokens", 4096),
                 timeout: PluginService.loadPluginData(pluginId, "timeout", 30)
-            }
-            nextProviders[provider] = normalizedProfile(provider, legacyProfile)
-            saveProviders(nextProviders)
+            };
+            nextProviders[provider] = normalizedProfile(provider, legacyProfile);
+            saveProviders(nextProviders);
         } else {
-            providers = nextProviders
+            providers = nextProviders;
         }
 
-        applyActiveProfile()
-        useMonospace = PluginService.loadPluginData(pluginId, "useMonospace", false)
+        applyActiveProfile();
+        useMonospace = PluginService.loadPluginData(pluginId, "useMonospace", false);
     }
 
     function focusApiKeyField() {
         if (apiKeyField) {
-            apiKeyField.forceActiveFocus()
+            apiKeyField.forceActiveFocus();
         }
     }
 
     Connections {
         target: PluginService
         function onPluginDataChanged(pId) {
-            if (pId === pluginId) load();
+            if (pId === root.pluginId)
+                root.load();
         }
     }
 
     Component.onCompleted: load()
-    onIsVisibleChanged: if (isVisible) load()
+    onIsVisibleChanged: if (isVisible)
+        load()
 
     visible: isVisible
 
@@ -232,12 +233,14 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                 }
 
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 DankButton {
                     text: I18n.tr("Close")
                     iconName: "close"
-                    onClicked: closeRequested()
+                    onClicked: root.closeRequested()
                 }
             }
 
@@ -304,7 +307,7 @@ Item {
                                     width: parent.width
                                     options: ["openai", "anthropic", "gemini", "custom"]
                                     currentValue: root.provider
-                                    onValueChanged: value => setProvider(value)
+                                    onValueChanged: value => root.setProvider(value)
                                 }
 
                                 // Base URL
@@ -317,7 +320,7 @@ Item {
                                     width: parent.width
                                     text: root.baseUrl
                                     placeholderText: "https://api.openai.com"
-                                    onEditingFinished: saveActiveField("baseUrl", text.trim())
+                                    onEditingFinished: root.saveActiveField("baseUrl", text.trim())
                                 }
 
                                 // Model
@@ -330,7 +333,7 @@ Item {
                                     width: parent.width
                                     text: root.model
                                     placeholderText: "gpt-5.2"
-                                    onEditingFinished: saveActiveField("model", text.trim())
+                                    onEditingFinished: root.saveActiveField("model", text.trim())
                                 }
                             }
                         }
@@ -385,15 +388,15 @@ Item {
                                 DankTextField {
                                     id: apiKeyField
                                     width: parent.width
-                                    text: root.saveApiKey ? root.apiKey : aiService.sessionApiKey
+                                    text: root.saveApiKey ? root.apiKey : root.aiService.sessionApiKey
                                     echoMode: TextInput.Password
                                     placeholderText: I18n.tr("Enter API key")
                                     leftIconName: root.saveApiKey ? "lock" : "vpn_key"
                                     onEditingFinished: {
                                         if (root.saveApiKey) {
-                                            saveActiveField("apiKey", text.trim())
+                                            root.saveActiveField("apiKey", text.trim());
                                         } else {
-                                            aiService.sessionApiKey = text.trim()
+                                            root.aiService.sessionApiKey = text.trim();
                                         }
                                     }
                                 }
@@ -409,7 +412,7 @@ Item {
                                     text: root.apiKeyEnvVar
                                     placeholderText: I18n.tr("e.g. OPENAI_API_KEY")
                                     leftIconName: "terminal"
-                                    onEditingFinished: saveActiveField("apiKeyEnvVar", text.trim())
+                                    onEditingFinished: root.saveActiveField("apiKeyEnvVar", text.trim())
                                 }
 
                                 // Remember API Key Toggle
@@ -430,9 +433,9 @@ Item {
                                     DankToggle {
                                         checked: root.saveApiKey
                                         onToggled: checked => {
-                                            saveActiveField("saveApiKey", checked)
-                                            if (checked && aiService.sessionApiKey) {
-                                                saveActiveField("apiKey", aiService.sessionApiKey)
+                                            root.saveActiveField("saveApiKey", checked);
+                                            if (checked && root.aiService.sessionApiKey) {
+                                                root.saveActiveField("apiKey", root.aiService.sessionApiKey);
                                             }
                                         }
                                     }
@@ -496,7 +499,7 @@ Item {
                                 maximum: 20
                                 value: Math.round(root.temperature * 10)
                                 showValue: false
-                                onSliderValueChanged: newValue => saveActiveField("temperature", newValue / 10)
+                                onSliderValueChanged: newValue => root.saveActiveField("temperature", newValue / 10)
                             }
                         }
                     }
@@ -557,7 +560,7 @@ Item {
                                 step: 256
                                 value: root.maxTokens
                                 showValue: false
-                                onSliderValueChanged: newValue => saveActiveField("maxTokens", newValue)
+                                onSliderValueChanged: newValue => root.saveActiveField("maxTokens", newValue)
                             }
                         }
                     }
@@ -630,7 +633,7 @@ Item {
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     checked: root.useMonospace
-                                    onToggled: checked => save("useMonospace", checked)
+                                    onToggled: checked => root.save("useMonospace", checked)
                                 }
                             }
                         }
