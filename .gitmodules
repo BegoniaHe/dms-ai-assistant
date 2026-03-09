@@ -4,3 +4,6 @@
 [submodule "reference/DankMaterialShell"]
 	path = reference/DankMaterialShell
 	url = https://github.com/AvengeMedia/DankMaterialShell
+[submodule "reference/dms-ai-assistant"]
+	path = reference/dms-ai-assistant
+	url = https://github.com/devnullvoid/dms-ai-assistant
