@@ -50,7 +50,7 @@ export const _md = md;
     const qtRenderer = fs.readFileSync('src/qt-renderer.js', 'utf8');
 
     // Combine: bundled markdown-it + Qt renderer + export
-    const final = bundled + '\n\n' + qtRenderer + '\n\nexport { markdownToHtml };\n';
+    const final = bundled + '\n\n' + qtRenderer + '\n\nexport { _md, markdownToHtml };\n';
 
     // Write final output
     fs.writeFileSync('markdown2html.mjs', final, 'utf8');

@@ -32,6 +32,7 @@ Item {
     property real formTemperature: 0.7
     property int formMaxTokens: 4096
     property int formTimeout: 30
+    property bool formUseMonospace: false
 
     // Provider templates
     readonly property var providerTemplates: ({
@@ -139,6 +140,7 @@ Item {
         formTemperature = 0.7;
         formMaxTokens = 4096;
         formTimeout = 30;
+        formUseMonospace = false;
     }
 
     /**

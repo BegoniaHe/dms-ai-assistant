@@ -1,6 +1,4 @@
-// ---------------------------------------------------------------------------
 // Qt-specific markdown renderer using markdown-it
-// ---------------------------------------------------------------------------
 
 function markdownToHtml(text, colors) {
   if (!text) return '';

@@ -5,9 +5,11 @@ import Quickshell
 import qs.Common
 import "../markdown2html.mjs" as Markdown2Html
 import qs.Widgets
+import "../data/utils/ThemeConstants.js" as ThemeConstants
 
 /**
  * MessageBubble - Individual message display component
+ * Refactored to use Theme constants and improved layout
  */
 Item {
     id: root
@@ -24,8 +26,8 @@ Item {
 
     readonly property bool isUser: role === "user"
     readonly property real bubbleMaxWidth: isUser ? Math.max(240, Math.floor(width * 0.82)) : width
-    readonly property color userBubbleFill: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.1)
-    readonly property color userBubbleBorder: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.3)
+    readonly property color userBubbleFill: Theme.withAlpha(Theme.primary, 0.1)
+    readonly property color userBubbleBorder: Theme.withAlpha(Theme.primary, 0.3)
     readonly property color assistantBubbleFill: Theme.surfaceContainer
     readonly property color assistantBubbleBorder: Theme.outline
 
@@ -46,80 +48,77 @@ Item {
         id: bubble
         width: Math.min(root.bubbleMaxWidth, root.width)
         x: root.isUser ? (root.width - width) : 0
-        radius: 8
+        radius: ThemeConstants.Sizes.bubbleRadius
         color: root.isUser ? root.userBubbleFill : root.assistantBubbleFill
         border.color: root.status === "error" ? Theme.error : (root.isUser ? root.userBubbleBorder : root.assistantBubbleBorder)
         border.width: 1
 
-        implicitHeight: contentColumn.implicitHeight + 16
+        implicitHeight: contentColumn.implicitHeight + (ThemeConstants.Sizes.bubblePadding * 2)
         height: implicitHeight
 
         Behavior on x {
             NumberAnimation {
-                duration: 120
+                duration: ThemeConstants.Animations.bubbleAnimationDuration
                 easing.type: Easing.OutCubic
             }
         }
 
         Column {
             id: contentColumn
-            x: 12
-            y: 12
-            width: parent.width - 24
-            spacing: 8
+            x: ThemeConstants.Sizes.bubblePadding
+            y: ThemeConstants.Sizes.bubblePadding
+            width: parent.width - (ThemeConstants.Sizes.bubblePadding * 2)
+            spacing: Theme.spacingM
 
             // Header row with role and actions
             RowLayout {
                 id: headerRow
                 width: parent.width
-                spacing: 4
+                spacing: Theme.spacingXS
+                layoutDirection: root.isUser ? Qt.RightToLeft : Qt.LeftToRight
 
-                Item {
-                    Layout.fillWidth: root.isUser
-                }
-
+                // Role badge
                 Rectangle {
-                    radius: 4
+                    radius: Theme.cornerRadius / 2
                     color: root.isUser ? Theme.withAlpha(Theme.primary, 0.14) : Theme.surfaceVariant
-                    Layout.preferredHeight: 20
-                    Layout.preferredWidth: headerText.implicitWidth + 8
+                    implicitWidth: headerText.implicitWidth + Theme.spacingS
+                    implicitHeight: Theme.fontSizeSmall + Theme.spacingXS
 
                     StyledText {
                         id: headerText
                         anchors.centerIn: parent
                         text: root.isUser ? "You" : "Assistant"
-                        font.pixelSize: 11
+                        font.pixelSize: Theme.fontSizeSmall
                         font.weight: Font.Medium
                         color: root.isUser ? Theme.primary : Theme.surfaceVariantText
                     }
                 }
 
+                // Avatar icon
                 Rectangle {
-                    Layout.preferredWidth: 18
-                    Layout.preferredHeight: 18
-                    radius: 9
+                    Layout.preferredWidth: ThemeConstants.Sizes.bubbleAvatarSize
+                    Layout.preferredHeight: ThemeConstants.Sizes.bubbleAvatarSize
+                    radius: ThemeConstants.Sizes.bubbleAvatarSize / 2
                     color: root.isUser ? Theme.withAlpha(Theme.primary, 0.20) : Theme.surfaceVariant
                     border.width: 1
-                    border.color: root.isUser ? Theme.withAlpha(Theme.primary, 0.35) : Theme.surfaceVariantAlpha
+                    border.color: root.isUser ? Theme.withAlpha(Theme.primary, 0.35) : Theme.outlineVariant
 
                     DankIcon {
                         anchors.centerIn: parent
                         name: root.isUser ? "person" : "smart_toy"
-                        size: 14
+                        size: ThemeConstants.Sizes.bubbleActionIconSize
                         color: root.isUser ? Theme.primary : Theme.surfaceVariantText
                     }
                 }
 
-                Item {
-                    Layout.fillWidth: !root.isUser
-                }
+                Item { Layout.fillWidth: true }
 
                 // Regenerate button
                 DankActionButton {
                     visible: !root.isUser && root.status === "ok"
                     iconName: "refresh"
-                    buttonSize: 24
-                    iconSize: 14
+                    buttonSize: ThemeConstants.Sizes.bubbleActionButtonSize
+                    iconSize: ThemeConstants.Sizes.bubbleActionIconSize
                     backgroundColor: "transparent"
                     iconColor: Theme.surfaceVariantText
                     tooltipText: "Regenerate"
@@ -130,8 +129,8 @@ Item {
                 DankActionButton {
                     visible: !root.isUser && root.status === "ok"
                     iconName: "content_copy"
-                    buttonSize: 24
-                    iconSize: 14
+                    buttonSize: ThemeConstants.Sizes.bubbleActionButtonSize
+                    iconSize: ThemeConstants.Sizes.bubbleActionIconSize
                     backgroundColor: "transparent"
                     iconColor: Theme.surfaceVariantText
                     tooltipText: "Copy"
@@ -145,14 +144,14 @@ Item {
 
             Item {
                 width: 1
-                height: 4
+                Layout.topMargin: Theme.spacingXS
             }
 
             // Error indicator
             StyledText {
                 visible: root.status === "error"
                 text: "Error"
-                font.pixelSize: 11
+                font.pixelSize: Theme.fontSizeSmall
                 font.weight: Font.Medium
                 color: Theme.error
                 width: parent.width
@@ -164,7 +163,7 @@ Item {
                 text: root.useMarkdownRendering ? root.renderedHtml : root.text
                 textFormat: root.useMarkdownRendering ? Text.RichText : Text.PlainText
                 wrapMode: Text.Wrap
-                font.pixelSize: 13
+                font.pixelSize: Theme.fontSizeMedium
                 font.family: root.useMonospace ? "monospace" : Theme.fontFamily
                 color: root.status === "error" ? Theme.error : Theme.surfaceText
                 width: parent.width
@@ -174,8 +173,8 @@ Item {
                 selectionColor: Theme.primary
                 selectedTextColor: Theme.onPrimary
                 background: null
-                leftPadding: 4
-                rightPadding: 4
+                leftPadding: Theme.spacingXS
+                rightPadding: Theme.spacingXS
 
                 hoverEnabled: true
 
@@ -204,17 +203,17 @@ Item {
             // Streaming indicator
             Rectangle {
                 visible: root.status === "streaming"
-                radius: 4
+                radius: Theme.cornerRadius / 2
                 color: Theme.surfaceVariant
-                height: 20
-                width: streamingText.implicitWidth + 8
+                implicitHeight: Theme.fontSizeSmall + Theme.spacingXS
+                implicitWidth: streamingText.implicitWidth + Theme.spacingS
                 x: root.isUser ? (parent.width - width) : 0
 
                 StyledText {
                     id: streamingText
                     anchors.centerIn: parent
                     text: "Streaming…"
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                 }
             }

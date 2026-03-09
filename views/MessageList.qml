@@ -1,9 +1,11 @@
 import QtQuick
 import QtQuick.Controls
 import qs.Common
+import "../data/utils/ThemeConstants.js" as ThemeConstants
 
 /**
  * MessageList - Displays chat messages
+ * Refactored to use Theme constants and improved scroll behavior
  */
 Item {
     id: root
@@ -26,11 +28,19 @@ Item {
         }
     }
 
+    // Give the markdown layout time to settle before scrolling
+    Timer {
+        id: scrollSettleTimer
+        interval: 32
+        repeat: false
+        onTriggered: listView.positionViewAtEnd()
+    }
+
     ListView {
         id: listView
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: Theme.spacingM
+        spacing: Theme.spacingM
         clip: true
         ScrollBar.vertical: ScrollBar {}
 
@@ -38,7 +48,7 @@ Item {
 
         onContentYChanged: {
             const maxY = Math.max(0, listView.contentHeight - listView.height);
-            root.stickToBottom = listView.contentY >= maxY - 20;
+            root.stickToBottom = listView.contentY >= maxY - Theme.spacingM;
         }
 
         onContentHeightChanged: {
@@ -49,19 +59,24 @@ Item {
 
         delegate: Item {
             id: wrapper
-            required property int index
-            required property var modelData
+            width: listView.width
 
-            width: listView.width - 16
-            implicitHeight: bubble.implicitHeight + 8
+            readonly property string previousRole: (index > 0 && root.messages) ? (root.messages[index - 1].role || "") : ""
+            readonly property bool roleChanged: previousRole.length > 0 && previousRole !== (modelData.role || "")
+            readonly property int topGap: roleChanged ? Theme.spacingM : 0
+
+            implicitHeight: bubble.implicitHeight + topGap
 
             MessageBubble {
                 id: bubble
-                width: wrapper.width
-                messageId: wrapper.modelData.id
-                role: wrapper.modelData.role
-                text: wrapper.modelData.content
-                status: wrapper.modelData.status
+                width: listView.width - Theme.spacingM * 2
+                x: Theme.spacingM
+                y: wrapper.topGap
+
+                messageId: modelData.id
+                role: modelData.role
+                text: modelData.content
+                status: modelData.status
                 useMonospace: root.useMonospace
 
                 onRetryRequested: (id) => root.retryRequested(id)

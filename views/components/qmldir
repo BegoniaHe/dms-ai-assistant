@@ -1,0 +1,8 @@
+module aiAssistant.components
+
+Dialog 1.0 Dialog.qml
+PopupMenu 1.0 PopupMenu.qml
+HintBar 1.0 HintBar.qml
+ChatHeader 1.0 ChatHeader.qml
+MessageComposer 1.0 MessageComposer.qml
+ProviderListItem 1.0 ProviderListItem.qml
