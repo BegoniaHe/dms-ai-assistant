@@ -29,3 +29,7 @@ restart:
 
 # Install plugin and restart DMS
 deploy: install restart
+
+# Run plugin
+run:
+    dms ipc call plugins toggle aiAssistant
