@@ -1,8 +1,6 @@
 import QtQuick
 import Quickshell
-import qs.Common
 import qs.Widgets
-import qs.Services
 import "."
 
 Item {
@@ -20,29 +18,36 @@ Item {
         }
     }
 
-            // Logic Component (Global for all variants)
-            AIAssistantService {
-                id: aiLogic
-                pluginId: root.pluginId
-                Component.onCompleted: console.log("DEBUG: AIAssistantService initialized")
+    // Logic Component (Global for all variants)
+    AIAssistantService {
+        id: aiLogic
+        pluginId: root.pluginId
+        Component.onCompleted: console.log("DEBUG: AIAssistantService initialized")
+    }
+    Component.onCompleted: console.log("DEBUG: Daemon initialized, aiService:", aiLogic)
+
+    Variants {
+        id: variants
+        model: Quickshell.screens
+
+        delegate: DankSlideout {
+            id: slideout
+            required property var modelData
+            title: "AI Assistant"
+            slideoutWidth: 480
+            expandable: true
+            expandedWidthValue: 960
+
+            content: AIAssistant {
+                aiService: aiLogic // qmllint disable unqualified
             }
-        Component.onCompleted: console.log("DEBUG: Daemon initialized, aiService:", aiLogic)
 
-        Variants {
-            id: variants
-            model: Quickshell.screens
-
-            delegate: DankSlideout {
-                id: slideout
-                required property var modelData
-                title: "AI Assistant"
-                slideoutWidth: 480
-                expandable: true
-                expandedWidthValue: 960
-
-                content: AIAssistant {
-                    aiService: aiLogic
-                    onHideRequested: slideout.hide()
+            Connections {
+                target: slideout.content
+                function onHideRequested() {
+                    slideout.hide();
                 }
             }
-        }}
+        }
+    }
+}
