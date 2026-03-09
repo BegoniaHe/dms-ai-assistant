@@ -1,0 +1,3 @@
+[submodule "reference/quickshell"]
+	path = reference/quickshell
+	url = https://github.com/quickshell-mirror/quickshell
