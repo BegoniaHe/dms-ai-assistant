@@ -32,20 +32,22 @@ cat ~/.config/DankMaterialShell/plugin_settings.json | jq .aiAssistant
 - `AIAssistantDaemon.qml` - Plugin lifecycle and screen management
 - `AIAssistantService.qml` - Singleton backend service (API calls, streaming, state)
 - `AIAssistant.qml` - UI component (chat interface)
-- `AIApiAdapters.js` - Provider adapters and curl command building
+- `AIApiAdapters.js` - Provider adapters and XHR streaming implementation
 - `markdown2html.js` - Markdown to HTML converter
 
-**HTTP Method**: Uses `Process` + `curl` instead of QML networking APIs. Output streamed via `StdioCollector.onTextChanged`.
+**HTTP Method**: Uses native QML `XMLHttpRequest` for streaming SSE responses. Output streamed via `readyState=3` callbacks.
 
 ## Critical Implementation Notes
 
 ### Streaming Behavior (IMPORTANT)
 
-**curl --compressed flag issue (fixed in v1.1.1)**:
+**v2.0 XHR Implementation**:
 
-- The `--compressed` flag was interfering with `StdioCollector` stdout capture
-- Removed from `AIApiAdapters.js` - only `-N` and `--no-buffer` are needed
-- Without this fix, streaming responses appear empty
+- Uses native QML `XMLHttpRequest` instead of external curl process
+- Streaming works via `readyState=3` (LOADING) callbacks
+- Each callback receives incremental `responseText` chunks
+- No external dependencies required - pure Qt6 QML implementation
+- Cross-platform compatible (no Windows curl.exe issues)
 
 **Why there's no "typing effect"**:
 
@@ -95,10 +97,11 @@ With `DMS_LOG_LEVEL=debug`, watch for:
 
 ## Common Pitfalls
 
-1. **Empty responses** → Check if `--compressed` flag was re-added to curl command
+1. **Empty responses** → Check network connectivity and API key validity
 2. **"No API key" errors** → DMS daemon doesn't inherit shell environment vars; use saved key or systemd environment.d
 3. **401 errors** → Verify API key has no whitespace; check provider authentication format
 4. **QtQuick.Controls incompatibility** → Use custom QML implementations (MouseArea + Rectangle) instead of Menu/Popup
+5. **Timeout errors** → Default timeout is 30s; increase via settings if needed for long responses
 
 ## Testing Checklist
 
@@ -113,6 +116,7 @@ With `DMS_LOG_LEVEL=debug`, watch for:
 
 ## Version History
 
+- **2.0.0** (2026-03-09): Migrated from curl to native XHR for streaming, removed external dependencies
 - **1.1.1** (2026-02-12): Fixed streaming by removing `--compressed` curl flag
 - **1.1.0**: Initial release with multi-provider support
 

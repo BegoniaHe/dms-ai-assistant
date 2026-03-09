@@ -33,6 +33,7 @@ Item {
     property real streamStartedAtMs: 0
     property string lastUserText: ""
     property int lastHttpStatus: 0
+    property var activeXHR: null
 
     // Settings
     property var providers: ({})
@@ -383,7 +384,7 @@ Item {
     function sendMessage(text) {
         if (!text || text.trim().length === 0)
             return;
-        if (isStreaming && chatFetcher.running) {
+        if (isStreaming && activeXHR) {
             markError(activeStreamId, "Please wait until the current response finishes.");
             return;
         }
@@ -391,7 +392,7 @@ Item {
     }
 
     function retryLast() {
-        if (isStreaming && chatFetcher.running)
+        if (isStreaming && activeXHR)
             return;
         const text = lastUserText || findLastUserText();
         if (!text)
@@ -400,7 +401,7 @@ Item {
     }
 
     function regenerateFromMessageId(messageId) {
-        if (!messageId || (isStreaming && chatFetcher.running))
+        if (!messageId || (isStreaming && activeXHR))
             return;
 
         const assistantIdx = findIndexById(messageId);
@@ -463,23 +464,44 @@ Item {
         lastHttpStatus = 0;
 
         const payload = buildPayload(text);
-        const curlCmd = buildCurlCommand(payload);
-        if (!curlCmd) {
+        const key = resolveApiKey();
+        if (!key) {
             markError(streamId, "No API key or provider configuration.");
             return;
         }
 
-        streamCollector.lastLen = 0;
+        if (debugEnabled) {
+            const req = AIApiAdapters.buildRequest(provider, payload, key);
+            if (req) {
+                const redactedUrl = (req.url || "").replace(key, "[REDACTED]");
+                const bodyPreview = (req.body || "");
+                console.log("[AIAssistantService] request provider=", provider, "url=", redactedUrl);
+                console.log("[AIAssistantService] request body(preview)=", bodyPreview.slice(0, 800));
+            }
+        }
+
         streamBuffer = "";
-        chatFetcher.command = curlCmd;
-        chatFetcher.running = true;
+        activeXHR = AIApiAdapters.sendStreamRequest(
+            provider,
+            payload,
+            key,
+            function(chunk) { handleStreamChunk(chunk); },
+            function(status) { handleStreamDone(status); },
+            function(error) { handleStreamError(error); }
+        );
+
+        if (!activeXHR) {
+            markError(streamId, "Failed to start request");
+        }
+
         saveSession();
     }
 
     function cancel() {
-        if (!isStreaming)
+        if (!isStreaming || !activeXHR)
             return;
-        chatFetcher.running = false;
+        activeXHR.abort();
+        activeXHR = null;
         markError(activeStreamId, "Cancelled");
     }
 
@@ -597,23 +619,43 @@ Item {
         };
     }
 
-    function buildCurlCommand(payload) {
-        const key = resolveApiKey();
-        if (!key)
-            return null;
+    property string streamBuffer: ""
 
-        const req = AIApiAdapters.buildRequest(provider, payload, key);
-        if (debugEnabled && req) {
-            const redactedUrl = (req.url || "").replace(key, "[REDACTED]");
-            const bodyPreview = (req.body || "");
-            console.log("[AIAssistantService] request provider=", provider, "url=", redactedUrl);
-            console.log("[AIAssistantService] request body(preview)=", bodyPreview.slice(0, 800));
-        }
-
-        return AIApiAdapters.buildCurlCommand(provider, payload, key);
+    function handleStreamDone(status) {
+        lastHttpStatus = status;
+        handleStreamFinished();
     }
 
-    property string streamBuffer: ""
+    function handleStreamError(errorMsg) {
+        if (isStreaming) {
+            markError(activeStreamId, errorMsg);
+        }
+        activeXHR = null;
+    }
+
+    function handleStreamFinished() {
+        if (!isStreaming)
+            return;
+
+        // Process any remaining buffer
+        if (streamBuffer.length > 0) {
+            const parts = streamBuffer.split(/\r?\n/);
+            for (let i = 0; i < parts.length; i++) {
+                const line = parts[i].trim();
+                if (line.startsWith("data: ")) {
+                    const dataStr = line.slice(6);
+                    if (dataStr === "[DONE]")
+                        continue;
+                    const delta = extractDelta(dataStr);
+                    if (delta)
+                        updateStreamContent(activeStreamId, delta);
+                }
+            }
+        }
+
+        finalizeStream(activeStreamId);
+        activeXHR = null;
+    }
 
     function handleStreamChunk(chunk) {
         let buffer = streamBuffer + chunk;
@@ -696,86 +738,6 @@ Item {
         }
     }
 
-    function handleStreamFinished(text) {
-        const match = text.match(/DMS_STATUS:(\d+)/);
-        if (match) {
-            lastHttpStatus = parseInt(match[1]);
-        }
-
-        function stripStatusFooter(fullText) {
-            const marker = "\nDMS_STATUS:";
-            const idx = fullText.lastIndexOf(marker);
-            if (idx >= 0)
-                return fullText.substring(0, idx);
-            return fullText;
-        }
-
-        const bodyText = stripStatusFooter(text || "").trim();
-        const bodyPreview = bodyText.length > 0 ? bodyText.slice(0, 600) : "";
-
-        if (isStreaming) {
-            const existing = getMessageContentById(activeStreamId);
-            if ((!existing || existing.length === 0) && bodyText && lastHttpStatus > 0 && lastHttpStatus < 400) {
-                const parsed = extractNonStreamingAssistantText(bodyText);
-                if (parsed && parsed.length > 0) {
-                    setMessageContentById(activeStreamId, parsed);
-                }
-            }
-        }
-
-        if (lastHttpStatus >= 400 && isStreaming) {
-            const msg = bodyPreview ? ("Request failed (HTTP " + lastHttpStatus + "): " + bodyPreview) : ("Request failed (HTTP " + lastHttpStatus + ")");
-            markError(activeStreamId, msg);
-            return;
-        }
-
-        if (isStreaming) {
-            finalizeStream(activeStreamId);
-        }
-    }
-
-    function extractNonStreamingAssistantText(bodyText) {
-        try {
-            const data = JSON.parse(bodyText);
-            if (provider === "anthropic") {
-                const content = data.content;
-                if (Array.isArray(content)) {
-                    let out = "";
-                    for (let i = 0; i < content.length; i++) {
-                        const c = content[i];
-                        if (c && c.text)
-                            out += c.text;
-                    }
-                    return out;
-                }
-                return data.text || "";
-            }
-
-            if (provider === "gemini") {
-                const chunks = Array.isArray(data) ? data : [data];
-                let out = "";
-                chunks.forEach(chunk => {
-                    const parts = chunk.candidates?.[0]?.content?.parts || [];
-                    parts.forEach(p => {
-                        if (p && p.text)
-                            out += p.text;
-                    });
-                });
-                return out;
-            }
-
-            const msg = data.choices?.[0]?.message?.content;
-            if (typeof msg === "string")
-                return msg;
-            const text = data.choices?.[0]?.text;
-            if (typeof text === "string")
-                return text;
-        } catch (e) {
-            // ignore
-        }
-        return "";
-    }
-
     function findLastUserText() {
         for (let i = messagesModel.count - 1; i >= 0; i--) {
             const m = messagesModel.get(i);
@@ -783,31 +745,5 @@ Item {
                 return m.content;
         }
         return "";
-    }
-
-    Process {
-        id: chatFetcher
-        running: false
-
-        stdout: StdioCollector {
-            id: streamCollector
-            property int lastLen: 0
-
-            onTextChanged: {
-                const newData = text.substring(lastLen);
-                lastLen = text.length;
-                handleStreamChunk(newData);
-            }
-
-            onStreamFinished: {
-                handleStreamFinished(text);
-            }
-        }
-
-        onExited: exitCode => {
-            if (exitCode !== 0 && isStreaming) {
-                markError(activeStreamId, "Request failed (exit " + exitCode + ")");
-            }
-        }
     }
 }
