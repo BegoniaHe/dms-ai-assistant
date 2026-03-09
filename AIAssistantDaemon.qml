@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import qs.Widgets
 import "data/repositories" as Repositories
 import "services" as Services
 import "viewmodels" as ViewModels

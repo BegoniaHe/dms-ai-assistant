@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import qs.Services
 
 /**
  * SessionRepository - Wrapper around FileView for session persistence

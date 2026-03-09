@@ -1,5 +1,5 @@
 import QtQuick
-import "../data/api/ProviderAdapters.mjs" as ProviderAdapters
+import "../data/api/ProviderAdapters.js" as ProviderAdapters
 
 /**
  * StreamingService - Manages XHR streaming lifecycle and chunk processing
